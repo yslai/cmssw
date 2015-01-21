@@ -3,10 +3,14 @@
 #include <iostream>
 
 // user include files
+
+#include "FWCore/Framework/interface/Event.h"
+#include "FWCore/Framework/interface/EventSetup.h"
+#include "FWCore/Framework/interface/ESHandle.h"
+
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/EDProducer.h"
 
-#include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
 
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
@@ -15,6 +19,9 @@
 #include "DataFormats/ParticleFlowCandidate/interface/PFCandidate.h"
 #include "DataFormats/Candidate/interface/Candidate.h"
 #include "DataFormats/Candidate/interface/LeafCandidate.h"
+
+#include "CondFormats/HIObjects/interface/UETable.h"
+#include "CondFormats/DataRecord/interface/HeavyIonRcd.h"
 
 #include "RecoHI/HiJetAlgos/interface/VoronoiAlgorithm.h"
 
@@ -95,7 +102,15 @@ VoronoiBackgroundProducer::produce(edm::Event& iEvent, const edm::EventSetup& iS
    using namespace edm;
    if(voronoi_ == 0){
      bool data = iEvent.isRealData();
-     voronoi_ = new VoronoiAlgorithm(equalizeR_,data,isCalo_,std::pair<double, double>(equalizeThreshold0_,equalizeThreshold1_),doEqualize_);
+
+	 edm::ESHandle<UETable> ueHandle;
+
+	 iSetup.get<HeavyIonRcd>().get(ueHandle);
+
+	 const UETable *ueTable = ueHandle.product();
+	 UECalibration *ue = new UECalibration(ueTable->values);
+
+     voronoi_ = new VoronoiAlgorithm(ue,equalizeR_,data,isCalo_,std::pair<double, double>(equalizeThreshold0_,equalizeThreshold1_),doEqualize_);
    }
 
    voronoi_->clear();

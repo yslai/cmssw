@@ -8,8 +8,77 @@
 
 #include "FWCore/ParameterSet/interface/FileInPath.h"
 
-struct UECalibration{
-  explicit UECalibration(bool isRealData = true, bool isCalo = false){
+struct UECalibration {
+	UECalibration(const std::vector<double> &v)
+	{
+		np[0] = 3;	// Number of reduced PF ID (track, ECAL, HCAL)
+		np[1] = 15;	// Number of pseudorapidity block
+		np[2] = 5;	// Fourier series order
+		np[3] = 2;	// Re or Im
+		np[4] = 82;	// Number of feature parameter
+
+		ni0[0] = np[1];
+		ni0[1] = 344;
+
+		ni1[0] = np[1];
+		ni1[1] = 344;
+
+		ni2[0] = np[1];
+		ni2[1] = 82;
+
+		unsigned int Nnp_full = np[0] * np[1] * np[2] * np[3] * np[4];
+		unsigned int Nnp = np[0] * np[1] * (1 + (np[2] - 1) * np[3]) * np[4];
+		unsigned int Nni0 = ni0[0]*ni0[1];
+		unsigned int Nni1 = ni1[0]*ni1[1];
+		unsigned int Nni2 = ni2[0]*ni2[1];
+
+		memset(ue_predictor_pf, 0, Nnp_full * sizeof(float));
+		memset(ue_interpolation_pf0, 0, Nni0 * sizeof(float));
+		memset(ue_interpolation_pf1, 0, Nni1 * sizeof(float));
+		memset(ue_interpolation_pf2, 0, Nni2 * sizeof(float));
+
+		for (index = 0; index < Nnp + Nni0 + Nni1 + Nni2; index++) {      
+			float val = v[index];
+			int bin0, bin1, bin2, bin3, bin4;
+
+			if (index < Nnp){
+				bin4 = index % np[4];
+
+				unsigned int u = (index / np[4]) % (1 + (np[2] - 1) * np[3]);
+
+				if (u == 0) {
+					bin2 = 0;
+					bin3 = 0;
+				}
+				else {
+					bin2 = (u - 1) / np[3] + 1;
+					bin3 = (u - 1) % np[3];
+				}
+
+			  bin1 = ((index / np[4]) / (1 + (np[2] - 1) * np[3])) % np[1];
+			  bin0 = ((index / np[4]) / (1 + (np[2] - 1) * np[3])) / np[1];
+
+			  ue_predictor_pf[bin0][bin1][bin2][bin3][bin4] = val;
+		  }
+		  else if (index < Nnp + Nni0) {
+			  bin1 = (index - Nnp) % ni0[1];
+			  bin0 = (index - Nnp) / ni0[1];
+			  ue_interpolation_pf0[bin0][bin1] = val;
+		  }
+		  else if (index < Nnp + Nni0 + Nni1) {
+			  bin1 = (index - Nnp - Nni0) % ni1[1];
+			  bin0 = (index - Nnp - Nni0) / ni1[1];
+			  ue_interpolation_pf1[bin0][bin1] = val;
+		  }
+		  else {
+			  bin1 = (index - Nnp - Nni0 - Nni1) % ni2[1];
+			  bin0 = (index - Nnp - Nni0 - Nni1) / ni2[1];
+			  ue_interpolation_pf2[bin0][bin1] = val;
+		  }
+      }
+	}
+#if 0
+  UECalibration(bool isRealData, bool isCalo){
 	   np[0] = 3;	// Number of reduced PF ID (track, ECAL, HCAL)
 	   np[1] = 15;	// Number of pseudorapidity block
 	   np[2] = 5;	// Fourier series order
@@ -80,6 +149,7 @@ struct UECalibration{
 	 ++index;
       }
    }
+#endif
 
    unsigned int index,
       np[5], 

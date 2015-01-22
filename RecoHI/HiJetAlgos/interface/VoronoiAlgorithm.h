@@ -101,8 +101,6 @@ public:
 	VoronoiAlgorithm(
 		const UECalibration *ue,
 		const double dr_max,
-		const bool isRealData = true,
-		const bool isCalo = false,
 		const std::pair<double, double> equalization_threshold =
 		std::pair<double, double>(5.0, 35.0),
 		const bool remove_nonpositive = true);

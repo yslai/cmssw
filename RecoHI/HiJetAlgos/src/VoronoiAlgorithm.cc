@@ -1824,8 +1824,6 @@ namespace {
 		VoronoiAlgorithm::VoronoiAlgorithm(
 			const UECalibration *ue_,
 			const double dr_max,
-			const bool isRealData,
-			const bool isCalo,
 			const std::pair<double, double> equalization_threshold,
 			const bool remove_nonpositive)
 			: _remove_nonpositive(remove_nonpositive),
@@ -1836,8 +1834,6 @@ namespace {
 			  ue(ue_)
 		{
 			initialize_geometry();
-
-			// ue = new UECalibration(isRealData, isCalo);
 
 			static const size_t nedge_pseudorapidity = 15 + 1;
 			static const double edge_pseudorapidity[nedge_pseudorapidity] = {

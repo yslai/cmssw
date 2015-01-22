@@ -48,7 +48,7 @@ class VoronoiBackgroundProducer : public edm::EDProducer {
    double equalizeThreshold0_;
    double equalizeThreshold1_;
    double equalizeR_;
-   bool isCalo_;
+   std::string tableLabel_;
    int etaBins_;
    int fourierOrder_;
    std::vector<reco::VoronoiBackground> vvm;
@@ -73,7 +73,7 @@ VoronoiBackgroundProducer::VoronoiBackgroundProducer(const edm::ParameterSet& iC
    equalizeThreshold0_(iConfig.getParameter<double>("equalizeThreshold0")),
    equalizeThreshold1_(iConfig.getParameter<double>("equalizeThreshold1")),
    equalizeR_(iConfig.getParameter<double>("equalizeR")),
-   isCalo_(iConfig.getParameter<bool>("isCalo")),
+   tableLabel_(iConfig.getParameter<std::string>("tableLabel")),
    etaBins_(iConfig.getParameter<int>("etaBins")),
    fourierOrder_(iConfig.getParameter<int>("fourierOrder"))
 {
@@ -101,16 +101,14 @@ VoronoiBackgroundProducer::produce(edm::Event& iEvent, const edm::EventSetup& iS
 {
    using namespace edm;
    if(voronoi_ == 0){
-     bool data = iEvent.isRealData();
-
 	 edm::ESHandle<UETable> ueHandle;
 
-	 iSetup.get<HeavyIonRcd>().get(ueHandle);
+	 iSetup.get<HeavyIonRcd>().get(tableLabel_,ueHandle);
 
 	 const UETable *ueTable = ueHandle.product();
 	 UECalibration *ue = new UECalibration(ueTable->values);
 
-     voronoi_ = new VoronoiAlgorithm(ue,equalizeR_,data,isCalo_,std::pair<double, double>(equalizeThreshold0_,equalizeThreshold1_),doEqualize_);
+     voronoi_ = new VoronoiAlgorithm(ue,equalizeR_,std::pair<double, double>(equalizeThreshold0_,equalizeThreshold1_),doEqualize_);
    }
 
    voronoi_->clear();

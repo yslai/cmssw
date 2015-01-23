@@ -7,7 +7,9 @@
 class UETable{
  public:
   UETable(){};
-  std::vector<double> values;
+  float get(int i){return values[i];}
+  void push(float v){values.push_back(v);}
+  std::vector<float> values;
 
   COND_SERIALIZABLE;
 };

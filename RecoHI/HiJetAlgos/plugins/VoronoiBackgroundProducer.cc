@@ -21,7 +21,7 @@
 #include "DataFormats/Candidate/interface/LeafCandidate.h"
 
 #include "CondFormats/HIObjects/interface/UETable.h"
-#include "CondFormats/DataRecord/interface/HeavyIonRcd.h"
+#include "CondFormats/DataRecord/interface/HeavyIonUERcd.h"
 
 #include "RecoHI/HiJetAlgos/interface/VoronoiAlgorithm.h"
 
@@ -103,7 +103,7 @@ VoronoiBackgroundProducer::produce(edm::Event& iEvent, const edm::EventSetup& iS
    if(voronoi_ == 0){
 	 edm::ESHandle<UETable> ueHandle;
 
-	 iSetup.get<HeavyIonRcd>().get(tableLabel_,ueHandle);
+	 iSetup.get<HeavyIonUERcd>().get(tableLabel_,ueHandle);
 
 	 const UETable *ueTable = ueHandle.product();
 	 UECalibration *ue = new UECalibration(ueTable->values);

@@ -132,6 +132,11 @@ UETableProducer::endJob() {
   unsigned int Nni1 = ni1[0]*ni1[1];
   unsigned int Nni2 = ni2[0]*ni2[1];
 
+  ue_predictor_pf->np.resize(5);
+  ue_predictor_pf->ni0.resize(2);
+  ue_predictor_pf->ni1.resize(2);
+  ue_predictor_pf->ni2.resize(2);
+
   std::copy(np, np + 5, ue_predictor_pf->np.begin());
   std::copy(ni0, ni0 + 2, ue_predictor_pf->ni0.begin());
   std::copy(ni1, ni1 + 2, ue_predictor_pf->ni1.begin());
@@ -140,6 +145,8 @@ UETableProducer::endJob() {
   static const float edge_pseudorapidity[16] = {
 	-5.191, -2.650, -2.043, -1.740, -1.479, -1.131, -0.783, -0.522, 0.522, 0.783, 1.131, 1.479, 1.740, 2.043, 2.650, 5.191
   };
+
+  ue_predictor_pf->edgeEta.resize(16);
 
   std::copy(edge_pseudorapidity, edge_pseudorapidity + 16, ue_predictor_pf->edgeEta.begin());
 

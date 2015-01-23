@@ -7,7 +7,7 @@
 #include <sstream>
 
 struct UECalibration {
-   UECalibration(const std::vector<double> &v)
+   UECalibration(const std::vector<float> &v)
 	{
 		np[0] = 3;	// Number of reduced PF ID (track, ECAL, HCAL)
 		np[1] = 15;	// Number of pseudorapidity block

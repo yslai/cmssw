@@ -21,7 +21,7 @@
 #include "DataFormats/HcalRecHit/interface/HcalRecHitCollections.h"
 #include "DataFormats/Common/interface/Ref.h"
 
-#include "CondFormats/DataRecord/interface/HeavyIonRcd.h"
+#include "CondFormats/DataRecord/interface/HeavyIonUERcd.h"
 #include "CondFormats/HIObjects/interface/UETable.h"
 #include "CondCore/DBOutputService/interface/PoolDBOutputService.h"
 
@@ -164,10 +164,10 @@ UETableProducer::endJob() {
 
   edm::Service<cond::service::PoolDBOutputService> pool;
   if( pool.isAvailable() ){
-    if( pool->isNewTagRequest( "HeavyIonRcd" ) ){
-      pool->createNewIOV<UETable>( ue_predictor_pf, pool->beginOfTime(), pool->endOfTime(), "HeavyIonRcd" );
+    if( pool->isNewTagRequest( "HeavyIonUERcd" ) ){
+      pool->createNewIOV<UETable>( ue_predictor_pf, pool->beginOfTime(), pool->endOfTime(), "HeavyIonUERcd" );
     }else{
-      pool->appendSinceTime<UETable>( ue_predictor_pf, pool->currentTime(), "HeavyIonRcd" );
+      pool->appendSinceTime<UETable>( ue_predictor_pf, pool->currentTime(), "HeavyIonUERcd" );
     }
 
   }

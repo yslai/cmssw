@@ -141,6 +141,7 @@ VoronoiBackgroundProducer::produce(edm::Event& iEvent, const edm::EventSetup& iS
 
       reco::VoronoiBackground bkg(pre_eq_pt,post_eq_pt,pre_eq_mt,post_eq_mt,area);
       LogDebug("VoronoiBackgroundProducer")<<"Subtraction --- oldpt : "<<ref->pt()<<" --- newpt : "<<post_eq_pt<<endl;
+fprintf(stderr, "%s:%d: %f %f %f %f %f\n", __FILE__, __LINE__, ref->pt(), pre_eq_pt, post_eq_pt, ref->eta(),ref->phi());
       vvm.push_back(bkg);
    }
 

@@ -48,7 +48,8 @@ class VoronoiBackgroundProducer : public edm::EDProducer {
    double equalizeThreshold0_;
    double equalizeThreshold1_;
    double equalizeR_;
-   std::string textTable_;
+   bool useTextTable_;
+   bool isCalo_;
    std::string tableLabel_;
    int etaBins_;
    int fourierOrder_;
@@ -74,7 +75,8 @@ VoronoiBackgroundProducer::VoronoiBackgroundProducer(const edm::ParameterSet& iC
    equalizeThreshold0_(iConfig.getParameter<double>("equalizeThreshold0")),
    equalizeThreshold1_(iConfig.getParameter<double>("equalizeThreshold1")),
    equalizeR_(iConfig.getParameter<double>("equalizeR")),
-   textTable_(iConfig.getParameter<std::string>("textTable")),
+   useTextTable_(iConfig.getParameter<bool>("useTextTable")),
+   isCalo_(iConfig.getParameter<bool>("isCalo")),
    tableLabel_(iConfig.getParameter<std::string>("tableLabel")),
    etaBins_(iConfig.getParameter<int>("etaBins")),
    fourierOrder_(iConfig.getParameter<int>("fourierOrder"))
@@ -104,8 +106,17 @@ VoronoiBackgroundProducer::produce(edm::Event& iEvent, const edm::EventSetup& iS
    using namespace edm;
    if(voronoi_ == 0){
 	UECalibration *ue = NULL;
-	if (!textTable_.empty()) {
-	 ue = new UECalibration(textTable_);
+	if (useTextTable_) {
+	 const bool isData = iEvent.isRealData();
+	 const char *calibrationFile = NULL;
+      if(isCalo_){
+        if(isData) calibrationFile = "RecoHI/HiJetAlgos/data/ue_calibrations_calo_data.txt";
+        if(!isData) calibrationFile = "RecoHI/HiJetAlgos/data/ue_calibrations_calo_mc.txt";
+      }else{
+        if(isData) calibrationFile = "RecoHI/HiJetAlgos/data/ue_calibrations_pf_data.txt";
+        if(!isData) calibrationFile = "RecoHI/HiJetAlgos/data/ue_calibrations_pf_mc.txt";
+      }
+	ue = new UECalibration(calibrationFile);
 	}
 	else {
 	 edm::ESHandle<UETable> ueHandle;

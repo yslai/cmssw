@@ -1,3 +1,6 @@
+#include <fastjet/PseudoJet.hh>
+#include <fastjet/ClusterSequence.hh>
+
 #include "VoronoiAlgorithm.h"
 #include "DataFormats/Math/interface/normalizedPhi.h"
 
@@ -1271,6 +1274,125 @@ namespace {
 					iterator->momentum_perp_subtracted;
 			}
 		}
+		void VoronoiAlgorithm::self_subtract_momentum(
+			const std::vector<bool> &exclusion = std::vector<bool>())
+		{
+			// event_plane_2 = 2 * Psi_2 (where -pi < Psi_2 < pi)
+			const double event_plane_2 =
+				atan2(_feature[4], _feature[3]);
+			std::vector<int> interpolation_index;
+
+			for (size_t i = 0; i < _event.size(); i++) {
+				interpolation_index.push_back(-1);
+
+				for (size_t l = 1;
+					 l < _cms_hcal_edge_pseudorapidity.size(); l++) {
+					if (_event[i].momentum.Eta() >=
+						_cms_hcal_edge_pseudorapidity[l - 1] &&
+						_event[i].momentum.Eta() <
+						_cms_hcal_edge_pseudorapidity[l]) {
+						interpolation_index.back() = l - 1;
+						break;
+					}
+				}
+			}
+
+			std::vector<double>
+				density_0(_cms_hcal_edge_pseudorapidity.size() - 1, 0);
+			std::vector<double>
+				density_2(_cms_hcal_edge_pseudorapidity.size() - 1, 0);
+			std::vector<double>
+				area(_cms_hcal_edge_pseudorapidity.size() - 1, 0);
+
+			for (size_t i = 0; i < _event.size(); i++) {
+				if (interpolation_index[i] != -1 && !exclusion[i]) {
+					density_0[interpolation_index[i]] +=
+						_event[i].momentum.Pt();
+					density_2[interpolation_index[i]] +=
+						_event[i].momentum.Pt() *
+						cos(2 * _event[i].momentum.Phi() - event_plane_2);
+					area[interpolation_index[i]] += _event[i].area;
+				}
+			}
+
+			for (size_t i = 0; i < area.size(); i++) {
+				density_0[i] /= area[i];
+				density_2[i] /= area[i];
+			}
+
+			for (size_t i = 0; i < _event.size(); i++) {
+				if (interpolation_index[i] != -1) {
+					const double density =
+						density_0[interpolation_index[i]] +
+						2 * density_2[interpolation_index[i]] *
+						cos(2 * _event[i].momentum.Phi() - event_plane_2);
+
+					_event[i].momentum_perp_subtracted =
+						_event[i].momentum.Pt() -
+						density * _event[i].area;
+				}
+			}
+		}
+		std::vector<bool> VoronoiAlgorithm::self_subtract_exclusion(
+			const double antikt_distance,
+			const double exclusion_perp_min,
+			const double exclusion_radius)
+		{
+			std::vector<fastjet::PseudoJet> pseudojet;
+
+			for (std::vector<particle_t>::const_iterator iterator =
+					 _event.begin();
+				 iterator != _event.end(); iterator++) {
+				pseudojet.push_back(fastjet::PseudoJet(
+					iterator->momentum.px(),
+					iterator->momentum.py(),
+					iterator->momentum.pz(),
+					iterator->momentum.energy()));
+				pseudojet.back().set_user_index(
+					iterator - _event.begin());
+			}
+
+			fastjet::JetDefinition
+				jet_definition(fastjet::antikt_algorithm,
+							   antikt_distance);
+			fastjet::ClusterSequence
+				cluster_sequence(pseudojet, jet_definition);
+			std::vector<fastjet::PseudoJet> jet =
+				cluster_sequence.inclusive_jets();
+			std::vector<bool> exclude(_event.size(), false);
+
+			for (std::vector<fastjet::PseudoJet>::const_iterator
+					 iterator_jet = jet.begin();
+				 iterator_jet != jet.end(); iterator_jet++) {
+				std::vector<fastjet::PseudoJet> constituent =
+					cluster_sequence.constituents(*iterator_jet);
+				double perp_resummed = 0;
+
+				for (std::vector<fastjet::PseudoJet>::const_iterator
+						 iterator_pseudojet = pseudojet.begin();
+					 iterator_pseudojet != pseudojet.end();
+					 iterator_pseudojet++) {
+					perp_resummed +=
+						_event[iterator_pseudojet->user_index()].
+						momentum_perp_subtracted;
+				}
+
+				if (iterator_jet->perp() >= exclusion_perp_min) {
+					for (std::vector<fastjet::PseudoJet>::const_iterator
+							 iterator_pseudojet = pseudojet.begin();
+						 iterator_pseudojet != pseudojet.end();
+						 iterator_pseudojet++) {
+						if (iterator_jet->squared_distance(
+							*iterator_pseudojet) <
+							exclusion_radius * exclusion_radius) {
+							exclude[iterator_pseudojet->user_index()] = true;
+						}
+					}
+				}
+			}
+
+			return exclude;
+		}
 		void VoronoiAlgorithm::recombine_link(void)
 		{
 			boost::multi_array<double, 2> radial_distance_square(
@@ -1818,7 +1940,20 @@ namespace {
 				event_fourier();
 				feature_extract();
 				voronoi_area_incident();
-				subtract_momentum();
+				if (_self_subtract) {
+					// ATLAS Collab., Phys. Lett. B 719 (2013) 220-241
+					// without seed jets (like the CMS iterative PU)
+					self_subtract_momentum();
+					const std::vector<bool> exclusion =
+						self_subtract_exclusion(
+							_self_subtract_antikt_distance,
+							_self_subtract_exclusion_perp_min,
+							_self_subtract_exclusion_radius);
+					self_subtract_momentum(exclusion);
+				}
+				else {
+					subtract_momentum();
+				}
 				if (_remove_nonpositive) {
 					equalize();
 					remove_nonpositive();
@@ -1831,11 +1966,19 @@ namespace {
 			const UECalibration *ue_,
 			const double dr_max,
 			const std::pair<double, double> equalization_threshold,
-			const bool remove_nonpositive)
+			const bool remove_nonpositive,
+			const bool self_subtract,
+			const double self_subtract_antikt_distance,
+			const double self_subtract_exclusion_perp_min,
+			const double self_subtract_exclusion_radius)
 			: _remove_nonpositive(remove_nonpositive),
 			  _equalization_threshold(equalization_threshold),
 			  _radial_distance_square_max(dr_max * dr_max),
 			  _positive_bound_scale(0.2),
+			  _self_subtract(self_subtract),
+			  _self_subtract_antikt_distance(self_subtract_antikt_distance),
+			  _self_subtract_exclusion_perp_min(self_subtract_exclusion_perp_min),
+			  _self_subtract_exclusion_radius(self_subtract_exclusion_radius),
 			  _subtracted(false),
 			  ue(ue_)
 		{

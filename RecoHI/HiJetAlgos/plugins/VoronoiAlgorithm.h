@@ -69,6 +69,10 @@ protected:
 	std::pair<double, double> _equalization_threshold;
 	double _radial_distance_square_max;
 	double _positive_bound_scale;
+	bool _self_subtract;
+	double _self_subtract_antikt_distance;
+	double _self_subtract_exclusion_perp_min;
+	double _self_subtract_exclusion_radius;
 	bool _subtracted;
 	event_t _event;
 	boost::multi_array<double, 4> *_perp_fourier;
@@ -92,6 +96,11 @@ private:
 	void feature_extract(void);
 	void voronoi_area_incident(void);
 	void subtract_momentum(void);
+	void self_subtract_momentum(const std::vector<bool> &exclusion);
+	std::vector<bool> self_subtract_exclusion(
+		const double antikt_distance,
+		const double exclusion_perp_min,
+		const double exclusion_radius);
 	void recombine_link(void);
 	void lp_populate(void *lp_problem);
 	void equalize(void);
@@ -103,7 +112,11 @@ public:
 		const double dr_max,
 		const std::pair<double, double> equalization_threshold =
 		std::pair<double, double>(5.0, 35.0),
-		const bool remove_nonpositive = true);
+		const bool remove_nonpositive = true,
+		const bool self_subtract = false,
+		const double self_subtract_antikt_distance = 0.2,
+		const double self_subtract_exclusion_perp_min = 25.0,
+		const double self_subtract_exclusion_radius = 0.4);
 	~VoronoiAlgorithm(void);
 	/**
 	 * Add a new unsubtracted particle to the current event

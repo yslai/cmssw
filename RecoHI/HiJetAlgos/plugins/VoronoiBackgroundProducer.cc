@@ -52,6 +52,10 @@ class VoronoiBackgroundProducer : public edm::EDProducer {
    double equalizeThreshold0_;
    double equalizeThreshold1_;
    double equalizeR_;
+   bool selfSubtract_;
+   double selfSubtractAntiktDistance_;
+   double selfSubtractExcludePtMin_;
+   double selfSubtractExcludeRadius_;
    bool useTextTable_;
    bool jetCorrectorFormat_;
    bool isCalo_;
@@ -80,6 +84,10 @@ VoronoiBackgroundProducer::VoronoiBackgroundProducer(const edm::ParameterSet& iC
    equalizeThreshold0_(iConfig.getParameter<double>("equalizeThreshold0")),
    equalizeThreshold1_(iConfig.getParameter<double>("equalizeThreshold1")),
    equalizeR_(iConfig.getParameter<double>("equalizeR")),
+   selfSubtract_(iConfig.getParameter<bool>("selfSubtract")),
+   selfSubtractAntiktDistance_(iConfig.getParameter<bool>("selfSubtractAntiktDistance")),
+   selfSubtractExcludePtMin_(iConfig.getParameter<bool>("selfSubtractExcludePtMin")),
+   selfSubtractExcludeRadius_(iConfig.getParameter<bool>("selfSubtractExcludeRadius")),
    useTextTable_(iConfig.getParameter<bool>("useTextTable")),
    jetCorrectorFormat_(iConfig.getParameter<bool>("jetCorrectorFormat")),
    isCalo_(iConfig.getParameter<bool>("isCalo")),
@@ -143,7 +151,7 @@ VoronoiBackgroundProducer::produce(edm::Event& iEvent, const edm::EventSetup& iS
 	 ue = new UECalibration(ueTable->values);
 	}
 
-     voronoi_ = new VoronoiAlgorithm(ue,equalizeR_,std::pair<double, double>(equalizeThreshold0_,equalizeThreshold1_),doEqualize_);
+	voronoi_ = new VoronoiAlgorithm(ue,equalizeR_,std::pair<double, double>(equalizeThreshold0_,equalizeThreshold1_),doEqualize_,selfSubtract_,selfSubtractAntiktDistance_,selfSubtractExcludePtMin_,selfSubtractExcludeRadius_);
    }
 
    voronoi_->clear();

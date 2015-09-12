@@ -10,6 +10,9 @@ public:
 protected:
 	// calibrations
 	const UECalibration *ue;
+	const bool exclude_v1;
+	const unsigned int max_vn;
+	const bool diagonal_vn;
 private:
 	void event_fourier(void);
 	void feature_extract(void);
@@ -22,6 +25,9 @@ public:
 	VoronoiAlgorithm(
 		const UECalibration *ue,
 		const double dr_max,
+		const bool exclude_v1,
+		const int max_vn,
+		const bool diagonal_vn,
 		const std::pair<double, double> equalization_threshold =
 		std::pair<double, double>(5.0, 35.0),
 		const bool remove_nonpositive = true);

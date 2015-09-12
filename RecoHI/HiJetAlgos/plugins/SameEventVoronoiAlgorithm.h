@@ -1,9 +1,9 @@
-#ifndef __SelfSubtractVoronoiAlgorithm_h__
-#define __SelfSubtractVoronoiAlgorithm_h__
+#ifndef __SameEventVoronoiAlgorithm_h__
+#define __SameEventVoronoiAlgorithm_h__
 
 #include "GenericVoronoiAlgorithm.h"
 
-class SelfSubtractVoronoiAlgorithm : public GenericVoronoiAlgorithm {
+class SameEventVoronoiAlgorithm : public GenericVoronoiAlgorithm {
 protected:
 	double _self_subtract_antikt_distance;
 	double _self_subtract_exclusion_perp_min;
@@ -23,14 +23,14 @@ private:
 		const bool exclusion_by_constituent = false);
 	void subtract_momentum(void);
 public:
-	SelfSubtractVoronoiAlgorithm(
+	SameEventVoronoiAlgorithm(
 		const double self_subtract_antikt_distance = 0.2,
 		const double self_subtract_exclusion_perp_min = 25.0,
 		const double self_subtract_exclusion_radius = 0.4,
 		const std::pair<double, double> equalization_threshold =
 		std::pair<double, double>(5.0, 35.0),
 		const bool remove_nonpositive = true);
-	~SelfSubtractVoronoiAlgorithm(void);
+	~SameEventVoronoiAlgorithm(void);
 };
 
 

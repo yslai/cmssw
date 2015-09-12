@@ -30,11 +30,13 @@ namespace {
 		VoronoiAlgorithm::VoronoiAlgorithm(
 			const UECalibration *ue_,
 			const double dr_max,
+			const bool exclude_v1_, const int max_vn_, const bool diagonal_vn_,
 			const std::pair<double, double> equalization_threshold,
 			const bool remove_nonpositive)
 			: GenericVoronoiAlgorithm(dr_max, equalization_threshold,
 									  remove_nonpositive),
-			  ue(ue_)
+			  ue(ue_),
+			  exclude_v1(exclude_v1_), max_vn(max_vn_), diagonal_vn(diagonal_vn_)
 		{
 		}
 
@@ -104,7 +106,10 @@ namespace {
 							float u = p[l][m][0];
 
 							for (size_t n = 0; n < 2 * nfourier - 1; n++) {
-								if ((l == 0 && n == 0) || (l == 2 && (n == 3 || n == 4))) {
+
+								if ((!exclude_v1 || l == 1) &&
+									(!diagonal_vn || ((l == 0 && n == 0) || (n == 2 * l - 1 || n == 2 * n))) &&
+									l <= max_vn) {
 									u += p[l][m][9 * n + 1] * _feature[n];
 									for (size_t o = 2; o < norder + 1; o++) {
 										u += p[l][m][9 * n + o] *

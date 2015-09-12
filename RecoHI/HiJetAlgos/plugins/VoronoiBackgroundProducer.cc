@@ -28,7 +28,7 @@
 #include "JetMETCorrections/Objects/interface/JetCorrectionsRecord.h"
 
 #include "VoronoiAlgorithm.h"
-#include "SelfSubtractVoronoiAlgorithm.h"
+#include "SameEventVoronoiAlgorithm.h"
 
 using namespace std;
 //
@@ -53,10 +53,13 @@ class VoronoiBackgroundProducer : public edm::EDProducer {
    double equalizeThreshold0_;
    double equalizeThreshold1_;
    double equalizeR_;
-   bool selfSubtract_;
-   double selfSubtractAntiktDistance_;
-   double selfSubtractExclusionPtMin_;
-   double selfSubtractExclusionRadius_;
+   bool excludeV1_;
+   int maxVn_;
+   bool diagonalVn_;
+   bool sameEvent_;
+   double sameEventAntiktDistance_;
+   double sameEventExclusionPtMin_;
+   double sameEventExclusionRadius_;
    bool useTextTable_;
    bool jetCorrectorFormat_;
    bool isCalo_;
@@ -85,10 +88,13 @@ VoronoiBackgroundProducer::VoronoiBackgroundProducer(const edm::ParameterSet& iC
    equalizeThreshold0_(iConfig.getParameter<double>("equalizeThreshold0")),
    equalizeThreshold1_(iConfig.getParameter<double>("equalizeThreshold1")),
    equalizeR_(iConfig.getParameter<double>("equalizeR")),
-   selfSubtract_(iConfig.getParameter<bool>("selfSubtract")),
-   selfSubtractAntiktDistance_(iConfig.getParameter<double>("selfSubtractAntiktDistance")),
-   selfSubtractExclusionPtMin_(iConfig.getParameter<double>("selfSubtractExclusionPtMin")),
-   selfSubtractExclusionRadius_(iConfig.getParameter<double>("selfSubtractExclusionRadius")),
+   excludeV1_(iConfig.getParameter<bool>("excludeV1")),
+   maxVn_(iConfig.getParameter<int>("maxVn")),
+   diagonalVn_(iConfig.getParameter<bool>("diagonalVn")),
+   sameEvent_(iConfig.getParameter<bool>("sameEvent")),
+   sameEventAntiktDistance_(iConfig.getParameter<double>("sameEventAntiktDistance")),
+   sameEventExclusionPtMin_(iConfig.getParameter<double>("sameEventExclusionPtMin")),
+   sameEventExclusionRadius_(iConfig.getParameter<double>("sameEventExclusionRadius")),
    useTextTable_(iConfig.getParameter<bool>("useTextTable")),
    jetCorrectorFormat_(iConfig.getParameter<bool>("jetCorrectorFormat")),
    isCalo_(iConfig.getParameter<bool>("isCalo")),
@@ -152,11 +158,11 @@ VoronoiBackgroundProducer::produce(edm::Event& iEvent, const edm::EventSetup& iS
 	 ue = new UECalibration(ueTable->values);
 	}
 
-	if (selfSubtract_) {
-		voronoi_ = new SelfSubtractVoronoiAlgorithm(selfSubtractAntiktDistance_, selfSubtractExclusionPtMin_, selfSubtractExclusionRadius_, std::pair<double, double>(equalizeThreshold0_,equalizeThreshold1_), doEqualize_);
+	if (sameEvent_) {
+		voronoi_ = new SameEventVoronoiAlgorithm(sameEventAntiktDistance_, sameEventExclusionPtMin_, sameEventExclusionRadius_, std::pair<double, double>(equalizeThreshold0_,equalizeThreshold1_), doEqualize_);
 	}
 	else {
-	voronoi_ = new VoronoiAlgorithm(ue,equalizeR_,std::pair<double, double>(equalizeThreshold0_,equalizeThreshold1_),doEqualize_);
+	voronoi_ = new VoronoiAlgorithm(ue,equalizeR_,excludeV1_,maxVn_,diagonalVn_,std::pair<double, double>(equalizeThreshold0_,equalizeThreshold1_),doEqualize_);
 	}
    }
 

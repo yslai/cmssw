@@ -1,9 +1,94 @@
 #include <fastjet/PseudoJet.hh>
 #include <fastjet/ClusterSequence.hh>
 
-#include "SelfSubtractVoronoiAlgorithm.h"
+#include "SameEventVoronoiAlgorithm.h"
 
-void SelfSubtractVoronoiAlgorithm::unsubtracted_momentum(void)
+namespace {
+
+	// Same as the result from ParticleTowerProducer::beginJob when
+	// useHF_ = true
+	static const double etaedge[42] = {
+		0, 0.087, 0.174, 0.261, 0.348, 0.435, 0.522, 0.609, 0.696,
+		0.783, 0.87, 0.957, 1.044, 1.131, 1.218, 1.305, 1.392, 1.479,
+		1.566, 1.653, 1.74, 1.83, 1.93, 2.043, 2.172, 2.322, 2.5,
+		2.65, 2.868, 3, 3.139, 3.314, 3.489, 3.664, 3.839, 4.013,
+		4.191, 4.363, 4.538, 4.716, 4.889, 5.191
+	};
+
+	// Taken from
+	// FastSimulation/CalorimeterProperties/src/HCALProperties.cc Note
+	// this returns an abs(ieta)
+	int eta2ieta(double eta)
+	{
+		// binary search in the array of towers eta edges
+
+		int size = 42;
+		// if(!useHF_) size = 30;
+
+		if(fabs(eta)>etaedge[size-1]) return -1;
+
+		double x = fabs(eta);
+		int curr = size / 2;
+		int step = size / 4;
+		int iter;
+		int prevdir = 0; 
+		int actudir = 0; 
+
+		for (iter = 0; iter < size ; iter++) {
+
+			if( curr >= size || curr < 1 )
+				std::cout <<  " ParticleTowerProducer::eta2ieta - wrong current index = "
+						  << curr << " !!!" << std::endl;
+
+			if ((x <= etaedge[curr]) && (x > etaedge[curr-1])) break;
+			prevdir = actudir;
+			if(x > etaedge[curr]) {actudir =  1;}
+			else {actudir = -1;}
+			if(prevdir * actudir < 0) { if(step > 1) step /= 2;}
+			curr += actudir * step;
+			if(curr > size) curr = size;
+			else { if(curr < 1) {curr = 1;}}
+
+			/*
+			  std::cout << " HCALProperties::eta2ieta  end of iter." << iter 
+			  << " curr, etaedge[curr-1], etaedge[curr] = "
+			  << curr << " " << etaedge[curr-1] << " " << etaedge[curr] << std::endl;
+			*/
+    
+		}
+
+		/*
+		  std::cout << " HCALProperties::eta2ieta  for input x = " << x 
+		  << "  found index = " << curr-1
+          << std::endl;
+		*/
+  
+		return curr;
+	}
+
+	int phi2iphi(double phi, int ieta)
+	{
+  
+		if(phi<0) phi += 2.*M_PI;
+		else if(phi> 2.*M_PI) phi -= 2.*M_PI;
+  
+		int iphi = (int) ceil(phi/2.0/M_PI*72.);
+		// take into account larger granularity in endcap (x2) and at the end of the HF (x4)
+		if(abs(ieta)>20){
+			if(abs(ieta)<40) iphi -= (iphi+1)%2;
+			else {
+				iphi -= (iphi+1)%4;
+				if(iphi==-1) iphi=71;
+			}
+		}
+  
+		return iphi;
+
+	}
+}
+
+
+void SameEventVoronoiAlgorithm::unsubtracted_momentum(void)
 {
 	for (std::vector<particle_t>::iterator iterator =
 			 _event.begin();
@@ -15,7 +100,7 @@ void SelfSubtractVoronoiAlgorithm::unsubtracted_momentum(void)
 	}
 }
 
-void SelfSubtractVoronoiAlgorithm::self_subtract_momentum(
+void SameEventVoronoiAlgorithm::self_subtract_momentum(
 	const std::vector<bool> &exclusion_density,
 	const std::vector<bool> &exclusion_flow)
 {
@@ -117,7 +202,7 @@ void SelfSubtractVoronoiAlgorithm::self_subtract_momentum(
 	}
 }
 
-void SelfSubtractVoronoiAlgorithm::self_subtract_exclusion(
+void SameEventVoronoiAlgorithm::self_subtract_exclusion(
 	std::vector<bool> &exclusion_density,
 	std::vector<bool> &exclusion_flow,
 	const bool fake_reject,
@@ -180,17 +265,21 @@ void SelfSubtractVoronoiAlgorithm::self_subtract_exclusion(
 				 iterator_constituent = constituent.begin();
 			 iterator_constituent != constituent.end();
 			 iterator_constituent++) {
-				const int int_pseudorapidity =
-					floor(iterator_constituent->pseudorapidity() *
-						  10.0);
-				const int int_azimuth =
-					floor((iterator_constituent->phi_std() + M_PI) *
-						  (32.0 / M_PI));
+				const int int_pseudorapidity_positive =
+					eta2ieta(iterator_constituent->pseudorapidity());
+				if (int_pseudorapidity_positive >= 0) {
+					const int int_pseudorapidity =
+						(iterator_constituent->pseudorapidity() < 0 ? -1 : 1) *
+						int_pseudorapidity_positive;
+					const int int_azimuth =
+						phi2iphi(iterator_constituent->phi_std(),
+								 int_pseudorapidity);
 
-				pseudotower[
-					std::pair<int, int>(int_pseudorapidity, int_azimuth)] +=
-					_event[iterator_constituent->user_index()].
-					momentum_perp_subtracted_unequalized;
+					pseudotower[
+						std::pair<int, int>(int_pseudorapidity, int_azimuth)] +=
+						_event[iterator_constituent->user_index()].
+						momentum_perp_subtracted_unequalized;
+				}
 			}
 
 			double et_max = 0;
@@ -242,9 +331,10 @@ void SelfSubtractVoronoiAlgorithm::self_subtract_exclusion(
 			}
 		}
 	}
+
 }
 
-void SelfSubtractVoronoiAlgorithm::subtract_momentum(void)
+void SameEventVoronoiAlgorithm::subtract_momentum(void)
 {
 	// ATLAS Collab., Phys. Lett. B 719, 220-241 (2013) adapted to PF
 	// and without track jets (not possible with the current
@@ -287,7 +377,7 @@ void SelfSubtractVoronoiAlgorithm::subtract_momentum(void)
 	self_subtract_momentum(exclusion_density, exclusion_flow);
 }
 
-SelfSubtractVoronoiAlgorithm::SelfSubtractVoronoiAlgorithm(
+SameEventVoronoiAlgorithm::SameEventVoronoiAlgorithm(
 	const double antikt_distance,
 	const double exclusion_perp_min,
 	const double exclusion_radius,
